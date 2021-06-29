@@ -75,7 +75,7 @@ func main() {
 
 	done := makePool(charChecks, func(c paramCheck, output chan paramCheck) {
 		output_of_url := []string{c.url, c.param}
-		for _, char := range []string{"http://quas.sh/", "http:/quas.sh/"} {
+		for _, char := range []string{"%0d%0aquasimoto: has-crlf", "\r\nquasimoto: has-crlf", "\r\n\r\nquasimoto: has-crlf", "\nquasimoto: has-crlf", "\rquasimoto: has-crlf"} {
 			wasReflected, err := checkAppend(c.url, c.param, char+"asuffix")
 			if err != nil {
 				//fmt.Fprintf(os.Stderr, "error from checkAppend for url %s with param %s with %s: %s", c.url, c.param, char, err)
@@ -83,11 +83,11 @@ func main() {
 			}
 
 			if wasReflected {
-				output_of_url = append(output_of_url, char)
+				output_of_url = append(output_of_url, url.QueryEscape(char))
 			}
 		}
 		if len(output_of_url) >= 2 {
-			fmt.Printf("URL: %s Param: %s Unfiltered: %v \n", output_of_url[0] , output_of_url[1],output_of_url[2:])
+			fmt.Printf("URL: %s Param: %s Payload: %v \n", output_of_url[0] , output_of_url[1],output_of_url[2:])
 		}
 	})
 
@@ -110,6 +110,7 @@ func checkReflected(targetURL string) ([]string, error) {
 
 	// temporary. Needs to be an option
 	req.Header.Add("User-Agent", "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.100 Safari/537.36")
+	req.Header.Add("Cookie", "Cookie: optimizelyEndUserId=oeu1612654619663r0.30642883604754745; optimizelySegments=%7B%222229771298%22%3A%22true%22%2C%227244600225%22%3A%22true%22%7D; optimizelyBuckets=%7B%7D; ajs_anonymous_id=%224c5bb9ed-f4c9-4010-9752-3e15429d213c%22; _hp2_id.1766097971=%7B%22userId%22%3A%223744053068798800%22%2C%22pageviewId%22%3A%226972598715416533%22%2C%22sessionId%22%3A%222138424659897959%22%2C%22identity%22%3A%22BYZHZGP2SJEUBAEPH3TC46%22%2C%22trackerVersion%22%3A%224.0%22%2C%22identityField%22%3Anull%2C%22isIdentified%22%3A1%7D; __adroll=433075f5d1737881c3af3190fd19080f-a_1612654622; __adroll_shared=433075f5d1737881c3af3190fd19080f-a_1612654622; _ga=GA1.2.1502284767.1612654623; fs_uid=rs.fullstory.com#M25YJ#5678935830675456:5720969343213568#58d277f6#/1644190622; _hjid=58bfbd35-5ae0-4453-9aed-52fcef3e1699; _fbp=fb.1.1612654623409.288354551; _hp2_props.1766097971=%7B%22telemetry_version%22%3A%22__VERSION__%22%2C%22location_pathname%22%3A%22%2Fsendroll%2Fembed%2Fsettings%22%2C%22advertisable%22%3A%22OSQVKZXC3RAJPBQFAOIVEE%22%2C%22organization%22%3A%22KJ3MTHSSLBCLBDG2VBKO5H%22%2C%22business_unit%22%3A%22adroll%22%2C%22advertisable_use_universal_campaigns%22%3Afalse%2C%22advertisable_name%22%3A%22Kushtomized%22%2C%22advertisable_url%22%3A%22https%3A%2F%2Fnirvanahub.com%2F%22%2C%22advertisable_currency%22%3A%22USD%22%2C%22advertisable_default_homepage%22%3A%22legacy_dash%22%2C%22advertisable_homepage_enabled%22%3Afalse%2C%22user%22%3A%22BYZHZGP2SJEUBAEPH3TC46%22%2C%22user_role%22%3A%22user%22%2C%22user_locale%22%3A%22en_US%22%2C%22app_version%22%3A%220a54a924e7f099c32c21dbb81540b9c2ba72347f%22%7D; ajs_user_id=%22BYZHZGP2SJEUBAEPH3TC46%22; ajs_group_id=%22OSQVKZXC3RAJPBQFAOIVEE%22; __zlcmid=12WjnATPrjaBssZ; _vwo_uuid_v2=DE4311523E21779229824E8948223F8D8|7085f4444f89ea3d2540eb49e701495c; _vis_opt_s=2%7C; _vwo_uuid=DE4311523E21779229824E8948223F8D8; _mkto_trk=id:964-WFU-818&token:_mch-adroll.com-1613683917453-44355; _gcl_au=1.1.1264850648.1623631442; _uetvid=63433740ba8111eb8b5903a4466c5020")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -136,7 +137,7 @@ func checkReflected(targetURL string) ([]string, error) {
 	//if ct != "" && !strings.Contains(ct, "html") {
 	//	return out, nil
 	//}
-	loc := string(resp.Header.Get("Location"))
+	//loc := string(resp.Header.Get("Location"))
 	//fmt.Printf(loc)
 	//body := string(b)
 	//if body == "" {
@@ -150,18 +151,20 @@ func checkReflected(targetURL string) ([]string, error) {
 	//schemhost := string(u.Scheme) + "://" +  string(u.Host)
 	for key, vv := range u.Query() {
 		for _, v := range vv {
-			if !strings.Contains(loc, v) {
-				continue
-			}
+			for _, headervalue := range resp.Header{
+				if !strings.Contains(headervalue[0], v) {
+					continue
+				}
 
-			out = append(out, key)
+				out = append(out, key)
+			}
 		}
 	}
 
 	return out, nil
 }
 
-func checkOpenRedirect(targetURL string) ([]string, error) {
+func checkCRLF(targetURL string) ([]string, error) {
 
 	out := make([]string, 0)
 
@@ -172,6 +175,7 @@ func checkOpenRedirect(targetURL string) ([]string, error) {
 
 	// temporary. Needs to be an option
 	req.Header.Add("User-Agent", "User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.100 Safari/537.36")
+	req.Header.Add("Cookie", "Cookie: optimizelyEndUserId=oeu1612654619663r0.30642883604754745; optimizelySegments=%7B%222229771298%22%3A%22true%22%2C%227244600225%22%3A%22true%22%7D; optimizelyBuckets=%7B%7D; ajs_anonymous_id=%224c5bb9ed-f4c9-4010-9752-3e15429d213c%22; _hp2_id.1766097971=%7B%22userId%22%3A%223744053068798800%22%2C%22pageviewId%22%3A%226972598715416533%22%2C%22sessionId%22%3A%222138424659897959%22%2C%22identity%22%3A%22BYZHZGP2SJEUBAEPH3TC46%22%2C%22trackerVersion%22%3A%224.0%22%2C%22identityField%22%3Anull%2C%22isIdentified%22%3A1%7D; __adroll=433075f5d1737881c3af3190fd19080f-a_1612654622; __adroll_shared=433075f5d1737881c3af3190fd19080f-a_1612654622; _ga=GA1.2.1502284767.1612654623; fs_uid=rs.fullstory.com#M25YJ#5678935830675456:5720969343213568#58d277f6#/1644190622; _hjid=58bfbd35-5ae0-4453-9aed-52fcef3e1699; _fbp=fb.1.1612654623409.288354551; _hp2_props.1766097971=%7B%22telemetry_version%22%3A%22__VERSION__%22%2C%22location_pathname%22%3A%22%2Fsendroll%2Fembed%2Fsettings%22%2C%22advertisable%22%3A%22OSQVKZXC3RAJPBQFAOIVEE%22%2C%22organization%22%3A%22KJ3MTHSSLBCLBDG2VBKO5H%22%2C%22business_unit%22%3A%22adroll%22%2C%22advertisable_use_universal_campaigns%22%3Afalse%2C%22advertisable_name%22%3A%22Kushtomized%22%2C%22advertisable_url%22%3A%22https%3A%2F%2Fnirvanahub.com%2F%22%2C%22advertisable_currency%22%3A%22USD%22%2C%22advertisable_default_homepage%22%3A%22legacy_dash%22%2C%22advertisable_homepage_enabled%22%3Afalse%2C%22user%22%3A%22BYZHZGP2SJEUBAEPH3TC46%22%2C%22user_role%22%3A%22user%22%2C%22user_locale%22%3A%22en_US%22%2C%22app_version%22%3A%220a54a924e7f099c32c21dbb81540b9c2ba72347f%22%7D; ajs_user_id=%22BYZHZGP2SJEUBAEPH3TC46%22; ajs_group_id=%22OSQVKZXC3RAJPBQFAOIVEE%22; __zlcmid=12WjnATPrjaBssZ; _vwo_uuid_v2=DE4311523E21779229824E8948223F8D8|7085f4444f89ea3d2540eb49e701495c; _vis_opt_s=2%7C; _vwo_uuid=DE4311523E21779229824E8948223F8D8; _mkto_trk=id:964-WFU-818&token:_mch-adroll.com-1613683917453-44355; _gcl_au=1.1.1264850648.1623631442; _uetvid=63433740ba8111eb8b5903a4466c5020")
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -198,7 +202,7 @@ func checkOpenRedirect(targetURL string) ([]string, error) {
 	//if ct != "" && !strings.Contains(ct, "html") {
 	//	return out, nil
 	//}
-	loc := string(resp.Header.Get("Location"))
+	//loc := string(resp.Header.Get("Location"))
 	//fmt.Printf(loc)
 	//body := string(b)
 	//if body == "" {
@@ -210,15 +214,20 @@ func checkOpenRedirect(targetURL string) ([]string, error) {
 		return out, err
 	}
 	//schemhost := string(u.Scheme) + "://" +  string(u.Host)
-	for key, vv := range u.Query() {
-		for _, v := range vv {
-			if !strings.HasPrefix(loc, v) {
-				continue
-			}
+	for key, _ := range u.Query() {
+		//for _, v := range vv {
+			for headerkey, _ := range resp.Header {
+				//fmt.Printf(strings.ToLower(headerkey)+"\r\n")
+				if !strings.Contains(strings.ToLower(headerkey), "quasimoto") {
+					continue
+				}
 
-			out = append(out, key)
-		}
+				out = append(out, key)
+			}
+			
+		//}
 	}
+	
 
 	return out, nil
 }
@@ -239,7 +248,7 @@ func checkAppend(targetURL, param, suffix string) (bool, error) {
 	qs.Set(param, suffix)
 	u.RawQuery = qs.Encode()
 
-	reflected, err := checkOpenRedirect(u.String())
+	reflected, err := checkCRLF(u.String())
 	if err != nil {
 		return false, err
 	}
