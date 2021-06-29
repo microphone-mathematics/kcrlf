@@ -1,4 +1,4 @@
-# kxss
+# kcrlf
 [1.1]: http://i.imgur.com/tXSoThF.png
 [1]: https://twitter.com/TobiunddasMoe
 This an adaption of Emoe's adaptation of tomnomnom's kxss tool with a different output format. I didn't want to fork his whole Hacks-Repository so created my Own ;-)
